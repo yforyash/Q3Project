@@ -4,15 +4,7 @@ import api, { setAccessToken } from './utils/api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
-interface AuthContextType {
-  user: any;
-  isAuthenticated: boolean;
-  loginUser: (userData: any, token: string) => void;
-  logout: () => void;
-  loading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -21,9 +13,9 @@ export const useAuth = () => {
 };
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,7 +34,7 @@ export default function App() {
     checkAuth();
   }, []);
 
-  const loginUser = (userData: any, token: string) => {
+  const loginUser = (userData, token) => {
     setUser(userData);
     setAccessToken(token);
     setIsAuthenticated(true);

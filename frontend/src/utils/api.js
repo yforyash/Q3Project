@@ -2,7 +2,7 @@ import axios from 'axios';
 
 let accessToken = '';
 
-export function setAccessToken(token: string) {
+export function setAccessToken(token) {
   accessToken = token;
 }
 

@@ -6,10 +6,10 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [orderMenuOpen, setOrderMenuOpen] = useState(true);
-  const [activeView, setActiveView] = useState<'find' | 'one-step' | 'two-step'>('find');
+  const [activeView, setActiveView] = useState('find');
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#090d16] text-slate-100 font-sans font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#090d16] text-slate-100 font-sans">
       <div className={`flex flex-col border-r border-slate-800 bg-[#0b1329] transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
         <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
           {sidebarOpen ? (
@@ -102,12 +102,12 @@ export default function Dashboard() {
 
 function FindOrdersView() {
   const [search, setSearch] = useState('');
-  const [orders, setOrders] = useState([
+  const orders = [
     { id: 'ORD-8942', customer: 'Acme Corporation', date: '2026-06-28', total: '$1,240.00', status: 'Shipped', items: 12 },
     { id: 'ORD-8941', customer: 'Global Industries', date: '2026-06-28', total: '$450.50', status: 'Pending', items: 3 },
     { id: 'ORD-8940', customer: 'Stark Enterprises', date: '2026-06-27', total: '$8,900.00', status: 'Processing', items: 25 },
     { id: 'ORD-8939', customer: 'Wayne Enterprises', date: '2026-06-26', total: '$3,120.00', status: 'Completed', items: 8 },
-  ]);
+  ];
 
   const filteredOrders = orders.filter(
     (order) =>
@@ -180,7 +180,7 @@ function CreateOneStepView() {
   const [quantity, setQuantity] = useState(1);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setSuccess(true);
     setTimeout(() => {
@@ -281,7 +281,7 @@ function CreateTwoStepView() {
         <p className="text-xs text-slate-400 mt-1">Multi-step routing wizard to review and approve orders</p>
       </div>
 
-      <div className="flex items-center space-x-4 mb-4 text-xs font-semibold uppercase tracking-wider font-sans">
+      <div className="flex items-center space-x-4 mb-4 text-xs font-semibold uppercase tracking-wider">
         <span className={`${step === 1 ? 'text-blue-400' : 'text-slate-500'}`}>1. Customer Details</span>
         <span className="text-slate-700">/</span>
         <span className={`${step === 2 ? 'text-blue-400' : 'text-slate-500'}`}>2. Items & Confirmation</span>
@@ -360,7 +360,7 @@ function CreateTwoStepView() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex-1 rounded-lg border border-slate-750 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+                    className="flex-1 rounded-lg border border-slate-700 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800"
                   >
                     Back
                   </button>

@@ -3,11 +3,9 @@ import { useAuth } from '../App';
 import api from '../utils/api';
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, User, Phone, CheckCircle2 } from 'lucide-react';
 
-type Mode = 'login' | 'signup' | 'verify';
-
 export default function Login() {
   const { loginUser } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState('login');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +22,7 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -42,14 +40,14 @@ export default function Login() {
         remember_me: rememberMe
       });
       loginUser(res.data.user, res.data.token);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -70,14 +68,14 @@ export default function Login() {
       });
       setSuccess('Account created! Please enter the 6-digit OTP sent to your email.');
       setMode('verify');
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -97,7 +95,7 @@ export default function Login() {
       setMode('login');
       setPassword('');
       setOtp('');
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.error || 'OTP verification failed. Please check the code.');
     } finally {
       setLoading(false);
@@ -160,9 +158,6 @@ export default function Login() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   Password
                 </label>
-                <a href="#" onClick={(e) => { e.preventDefault(); alert("Please contact system admin to reset password."); }} className="text-xs text-blue-500 hover:underline">
-                  Forgot password?
-                </a>
               </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
@@ -364,7 +359,7 @@ export default function Login() {
                   try {
                     await api.post('/auth/resend-otp', { email, purpose: 'signup' });
                     setSuccess('A new OTP has been dispatched to your email.');
-                  } catch (err: any) {
+                  } catch (err) {
                     setError(err.response?.data?.error || 'Failed to resend OTP.');
                   }
                 }}
