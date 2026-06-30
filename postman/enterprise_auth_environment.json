@@ -1,0 +1,25 @@
+{
+  "id": "cb1c36f5-e6a3-488f-a9cb-b203a3d24248",
+  "name": "Q3 Enterprise - Local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
