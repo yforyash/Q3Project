@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../App';
-import { LogOut, ChevronDown, ChevronRight, ShoppingCart, List, PlusCircle, CheckCircle2, User, Menu } from 'lucide-react';
+import { LogOut, ChevronDown, ChevronRight, ShoppingCart, List, PlusCircle, CheckCircle2, User, Menu, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../utils/api';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -102,18 +104,14 @@ export default function Dashboard() {
 
 function FindOrdersView() {
   const [search, setSearch] = useState('');
-  const orders = [
-    { id: 'ORD-8942', customer: 'Acme Corporation', date: '2026-06-28', total: '$1,240.00', status: 'Shipped', items: 12 },
-    { id: 'ORD-8941', customer: 'Global Industries', date: '2026-06-28', total: '$450.50', status: 'Pending', items: 3 },
-    { id: 'ORD-8940', customer: 'Stark Enterprises', date: '2026-06-27', total: '$8,900.00', status: 'Processing', items: 25 },
-    { id: 'ORD-8939', customer: 'Wayne Enterprises', date: '2026-06-26', total: '$3,120.00', status: 'Completed', items: 8 },
-  ];
 
-  const filteredOrders = orders.filter(
-    (order) =>
-      order.id.toLowerCase().includes(search.toLowerCase()) ||
-      order.customer.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: orders = [], isLoading, error } = useQuery({
+    queryKey: ['orders', search],
+    queryFn: async () => {
+      const response = await api.get(`/orders?search=${search}`);
+      return response.data;
+    }
+  });
 
   return (
     <div className="space-y-4">
@@ -133,62 +131,97 @@ function FindOrdersView() {
           />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-medium">
-                <th className="py-3 px-4">Order ID</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4 text-center">Items</th>
-                <th className="py-3 px-4">Total</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-800/20 text-slate-300">
-                  <td className="py-3 px-4 font-mono text-blue-400">{order.id}</td>
-                  <td className="py-3 px-4 font-medium text-white">{order.customer}</td>
-                  <td className="py-3 px-4">{order.date}</td>
-                  <td className="py-3 px-4 text-center">{order.items}</td>
-                  <td className="py-3 px-4 font-semibold">{order.total}</td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      order.status === 'Shipped' || order.status === 'Completed'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : order.status === 'Pending'
-                        ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </td>
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center text-slate-400">
+            <Loader2 className="animate-spin mr-2" size={18} />
+            <span>Loading orders...</span>
+          </div>
+        ) : error ? (
+          <div className="flex h-32 items-center justify-center text-red-400">
+            <span>Failed to load orders. Please try again.</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-medium">
+                  <th className="py-3 px-4">Order ID</th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4 text-center">Items</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-slate-800/20 text-slate-300">
+                    <td className="py-3 px-4 font-mono text-blue-400">{order.order_id}</td>
+                    <td className="py-3 px-4 font-medium text-white">{order.customer}</td>
+                    <td className="py-3 px-4">{new Date(order.date).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-center">{order.items}</td>
+                    <td className="py-3 px-4 font-semibold">${parseFloat(order.total).toFixed(2)}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        order.status === 'Shipped' || order.status === 'Completed'
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                          : order.status === 'Pending'
+                          ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                          : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                      No orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function CreateOneStepView() {
+  const queryClient = useQueryClient();
   const [customer, setCustomer] = useState('');
   const [sku, setSku] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [success, setSuccess] = useState(false);
 
+  const createOrderMutation = useMutation({
+    mutationFn: async (newOrder) => {
+      const response = await api.post('/orders', newOrder);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setCustomer('');
+        setSku('');
+        setQuantity(1);
+      }, 2000);
+    }
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setCustomer('');
-      setSku('');
-      setQuantity(1);
-    }, 2000);
+    createOrderMutation.mutate({
+      customer,
+      total: quantity * 45.00,
+      items: quantity,
+      status: 'Pending'
+    });
   };
 
   return (
@@ -251,6 +284,7 @@ function CreateOneStepView() {
 }
 
 function CreateTwoStepView() {
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [customer, setCustomer] = useState('');
   const [address, setAddress] = useState('');
@@ -258,20 +292,36 @@ function CreateTwoStepView() {
   const [quantity, setQuantity] = useState(1);
   const [success, setSuccess] = useState(false);
 
+  const createOrderMutation = useMutation({
+    mutationFn: async (newOrder) => {
+      const response = await api.post('/orders', newOrder);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setStep(1);
+        setCustomer('');
+        setAddress('');
+        setSku('');
+        setQuantity(1);
+      }, 2000);
+    }
+  });
+
   const handleNext = () => {
     if (step === 1 && customer && address) setStep(2);
   };
 
   const handleSubmit = () => {
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setStep(1);
-      setCustomer('');
-      setAddress('');
-      setSku('');
-      setQuantity(1);
-    }, 2000);
+    createOrderMutation.mutate({
+      customer,
+      total: quantity * 75.00,
+      items: quantity,
+      status: 'Pending'
+    });
   };
 
   return (

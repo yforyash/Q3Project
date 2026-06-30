@@ -146,3 +146,20 @@ WHERE u.email = 'admin@company.com'
 ON CONFLICT DO NOTHING;
 
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL UNIQUE,
+  customer VARCHAR(255) NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  total DECIMAL(10,2) NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'Pending',
+  items INTEGER NOT NULL DEFAULT 1
+);
+
+INSERT INTO orders (order_id, customer, date, total, status, items) VALUES
+('ORD-8942', 'Acme Corporation', '2026-06-28', 1240.00, 'Shipped', 12),
+('ORD-8941', 'Global Industries', '2026-06-28', 450.50, 'Pending', 3),
+('ORD-8940', 'Stark Enterprises', '2026-06-27', 8900.00, 'Processing', 25),
+('ORD-8939', 'Wayne Enterprises', '2026-06-26', 3120.00, 'Completed', 8)
+ON CONFLICT (order_id) DO NOTHING;

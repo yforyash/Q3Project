@@ -19,15 +19,18 @@ async function signup(req, res) {
       return res.status(400).json({ error: 'Email is already registered' });
     }
     const bcryptHash = await bcrypt.hash(password, 10);
-    const metadata = {
-      first_name,
-      last_name,
-      phone,
-      password_hash: bcryptHash
-    };
-    const otp = await generateOTP(email, 'signup', metadata);
-    await sendEmail(email, 'Verify Your Email Address', `Your OTP code is: ${otp}`);
-    res.status(201).json({ message: 'Signup successful. Please check your email for verification OTP.' });
+    const userRes = await db.query(
+      "INSERT INTO users (first_name, last_name, email, phone, status, email_verified) VALUES ($1, $2, $3, $4, 'active', TRUE) RETURNING id",
+      [first_name, last_name, email, phone || '']
+    );
+    const userId = userRes.rows[0].id;
+    const roleRes = await db.query("SELECT id FROM roles WHERE name = 'user'");
+    if (roleRes.rows.length > 0) {
+      await db.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)', [userId, roleRes.rows[0].id]);
+    }
+    await db.query('INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)', [userId, bcryptHash]);
+    await logAudit(userId, 'user_signup', req);
+    res.status(201).json({ message: 'Signup successful. You can now login.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error during signup' });

@@ -73,10 +73,10 @@ export default function Login() {
         last_name: lastName,
         email,
         phone,
-        password
       });
-      setSuccess('Account created! Please enter the 6-digit OTP sent to your email.');
-      setMode('verify');
+      setSuccess('Account created successfully! You can now sign in.');
+      setMode('login');
+      setPassword('');
     } catch (err) {
       setError(getErrorMsg(err, 'Registration failed. Please try again.'));
     } finally {

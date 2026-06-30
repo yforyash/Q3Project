@@ -12,6 +12,7 @@ const profileRoutes = require('./routes/profile');
 const sessionsRoutes = require('./routes/sessions');
 const adminRoutes = require('./routes/admin');
 const securityRoutes = require('./routes/security');
+const ordersRoutes = require('./routes/orders');
 
 require('dotenv').config();
 
@@ -32,6 +33,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/security', securityRoutes);
+app.use('/api/orders', ordersRoutes);
 
 async function initializeDatabase() {
   try {
