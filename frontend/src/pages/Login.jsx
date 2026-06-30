@@ -41,7 +41,7 @@ export default function Login() {
       });
       loginUser(res.data.user, res.data.token);
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid email or password');
+      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'Invalid email or password'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ export default function Login() {
       setSuccess('Account created! Please enter the 6-digit OTP sent to your email.');
       setMode('verify');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export default function Login() {
       setPassword('');
       setOtp('');
     } catch (err) {
-      setError(err.response?.data?.error || 'OTP verification failed. Please check the code.');
+      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'OTP verification failed. Please check the code.'));
     } finally {
       setLoading(false);
     }
