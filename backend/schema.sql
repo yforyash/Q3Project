@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS otps (
   purpose VARCHAR(50) NOT NULL,
   attempts INT DEFAULT 0,
   expires_at TIMESTAMP NOT NULL,
+  metadata JSONB,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

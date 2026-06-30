@@ -22,6 +22,15 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const getErrorMsg = (err, fallback) => {
+    if (!err.response) return 'Cannot connect to server. Please ensure the backend is running.';
+    if (err.response.data?.error) return err.response.data.error;
+    if (err.response.data?.errors && Array.isArray(err.response.data.errors)) {
+      return err.response.data.errors.map(e => e.msg).join(', ');
+    }
+    return fallback;
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -41,7 +50,7 @@ export default function Login() {
       });
       loginUser(res.data.user, res.data.token);
     } catch (err) {
-      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'Invalid email or password'));
+      setError(getErrorMsg(err, 'Invalid email or password'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +78,7 @@ export default function Login() {
       setSuccess('Account created! Please enter the 6-digit OTP sent to your email.');
       setMode('verify');
     } catch (err) {
-      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'Registration failed. Please try again.'));
+      setError(getErrorMsg(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +105,76 @@ export default function Login() {
       setPassword('');
       setOtp('');
     } catch (err) {
-      setError(err.response?.data?.error || (!err.response ? 'Cannot connect to server. Please ensure the backend is running.' : 'OTP verification failed. Please check the code.'));
+      setError(getErrorMsg(err, 'OTP verification failed. Please check the code.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!email) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setSuccess('If the email exists, a 6-digit password reset OTP has been sent.');
+      setOtp('');
+      setMode('verify_reset');
+    } catch (err) {
+      setError(getErrorMsg(err, 'Failed to send password reset code.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyResetOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!otp || otp.length !== 6) {
+      setError('Please enter a valid 6-digit OTP code.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/verify-reset-otp', { email, otp });
+      setSuccess('OTP verified successfully. Please enter your new password.');
+      setPassword('');
+      setMode('new_password');
+    } catch (err) {
+      setError(getErrorMsg(err, 'OTP verification failed. Please check the code.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!password || password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/reset-password', { email, password });
+      setSuccess('Password reset successfully! You can now log in.');
+      setPassword('');
+      setMode('login');
+    } catch (err) {
+      setError(getErrorMsg(err, 'Failed to reset password. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -117,6 +195,9 @@ export default function Login() {
             {mode === 'login' && 'Sign in to manage inventory and orders'}
             {mode === 'signup' && 'Create a new user account'}
             {mode === 'verify' && 'Verify your email address'}
+            {mode === 'forgot' && 'Reset your account password'}
+            {mode === 'verify_reset' && 'Enter password reset code'}
+            {mode === 'new_password' && 'Enter your new password'}
           </p>
         </div>
 
@@ -158,6 +239,13 @@ export default function Login() {
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   Password
                 </label>
+                <button
+                  type="button"
+                  onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                >
+                  Forgot Password?
+                </button>
               </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
@@ -375,6 +463,122 @@ export default function Login() {
                 Change Email
               </button>
             </div>
+          </form>
+        )}
+
+        {mode === 'forgot' && (
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Mail size={16} />
+                </span>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="block w-full rounded-lg border border-slate-700 bg-slate-900/50 py-2.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:bg-slate-900/90"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Sending Code...' : 'Send Reset Code'}
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mode === 'verify_reset' && (
+          <form onSubmit={handleVerifyResetOtp} className="space-y-5">
+            <div>
+              <p className="text-xs text-slate-300 mb-3 text-center">
+                Enter the password reset code sent to <strong className="text-white">{email}</strong>
+              </p>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="123456"
+                className="block w-full rounded-lg border border-slate-700 bg-slate-900/50 py-3 text-center text-lg font-bold tracking-widest text-white placeholder-slate-650 outline-none transition focus:border-blue-500 focus:bg-slate-900/90"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Verifying...' : 'Verify Code'}
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mode === 'new_password' && (
+          <form onSubmit={handleResetPassword} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                New Password
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Lock size={16} />
+                </span>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="block w-full rounded-lg border border-slate-700 bg-slate-900/50 py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:bg-slate-900/90"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-white"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Resetting Password...' : 'Reset Password'}
+            </button>
           </form>
         )}
       </div>

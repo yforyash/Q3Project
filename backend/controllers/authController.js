@@ -14,24 +14,19 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super_secret_refre
 async function signup(req, res) {
   const { first_name, last_name, email, phone, password } = req.body;
   try {
-    const exists = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    const exists = await db.query("SELECT id FROM users WHERE email = $1 AND status != 'pending'", [email]);
     if (exists.rows.length > 0) {
       return res.status(400).json({ error: 'Email is already registered' });
     }
-    const userRes = await db.query(
-      'INSERT INTO users (first_name, last_name, email, phone) VALUES ($1, $2, $3, $4) RETURNING id',
-      [first_name, last_name, email, phone]
-    );
-    const userId = userRes.rows[0].id;
-    const roleRes = await db.query("SELECT id FROM roles WHERE name = 'user'");
-    if (roleRes.rows.length > 0) {
-      await db.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)', [userId, roleRes.rows[0].id]);
-    }
     const bcryptHash = await bcrypt.hash(password, 10);
-    await db.query('INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)', [userId, bcryptHash]);
-    const otp = await generateOTP(email, 'signup');
+    const metadata = {
+      first_name,
+      last_name,
+      phone,
+      password_hash: bcryptHash
+    };
+    const otp = await generateOTP(email, 'signup', metadata);
     await sendEmail(email, 'Verify Your Email Address', `Your OTP code is: ${otp}`);
-    await logAudit(userId, 'user_signup', req);
     res.status(201).json({ message: 'Signup successful. Please check your email for verification OTP.' });
   } catch (err) {
     console.error(err);
@@ -44,7 +39,21 @@ async function verifyEmail(req, res) {
   try {
     const otpVerify = await verifyOTP(email, otp, 'signup');
     if (!otpVerify.valid) return res.status(400).json({ error: otpVerify.message });
-    await db.query("UPDATE users SET email_verified = TRUE, status = 'active' WHERE email = $1", [email]);
+    const metadata = otpVerify.metadata;
+    if (!metadata) {
+      return res.status(400).json({ error: 'Registration session expired. Please sign up again.' });
+    }
+    const userRes = await db.query(
+      "INSERT INTO users (first_name, last_name, email, phone, status, email_verified) VALUES ($1, $2, $3, $4, 'active', TRUE) RETURNING id",
+      [metadata.first_name, metadata.last_name, email, metadata.phone]
+    );
+    const userId = userRes.rows[0].id;
+    const roleRes = await db.query("SELECT id FROM roles WHERE name = 'user'");
+    if (roleRes.rows.length > 0) {
+      await db.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)', [userId, roleRes.rows[0].id]);
+    }
+    await db.query('INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)', [userId, metadata.password_hash]);
+    await logAudit(userId, 'user_signup', req);
     res.status(200).json({ message: 'Email verified successfully. You can now login.' });
   } catch (err) {
     console.error(err);
@@ -55,9 +64,21 @@ async function verifyEmail(req, res) {
 async function resendOtp(req, res) {
   const { email, purpose } = req.body;
   try {
-    const userRes = await db.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    const otp = await generateOTP(email, purpose);
+    let metadata = null;
+    if (purpose === 'signup') {
+      const pendingRes = await db.query(
+        "SELECT metadata FROM otps WHERE email = $1 AND purpose = 'signup' ORDER BY created_at DESC LIMIT 1",
+        [email]
+      );
+      if (pendingRes.rows.length === 0) {
+        return res.status(404).json({ error: 'No pending registration found for this email.' });
+      }
+      metadata = pendingRes.rows[0].metadata;
+    } else {
+      const userRes = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+      if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    }
+    const otp = await generateOTP(email, purpose, metadata);
     await sendEmail(email, 'Your OTP Code', `Your code is: ${otp}`);
     res.status(200).json({ message: 'New OTP code dispatched' });
   } catch (err) {
